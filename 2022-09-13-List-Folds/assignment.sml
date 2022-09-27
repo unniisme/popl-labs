@@ -19,8 +19,9 @@ fun foldl f s0 [] = s0
 
 (*
 Q2
+sumfun : int * int -> int
 
-sum : int list -> list
+sum : int list -> int
 *)
 
 fun sumfun (a,b) = (a+b)
@@ -80,7 +81,8 @@ fun nth (l,i) = case nthAux(l,i) of
                 |   Found x => SOME x
 
 
-
 (*
 BONUS
 *)
+
+fun rtol f (x, s) = 1
