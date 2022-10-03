@@ -76,14 +76,18 @@ fun execute2 (statement, env) = execute env statement
 val (newEnv:Env) =  AtomMap.empty
 
 (*
-val interpret = Program -> Env
+val interpret = Program -> unit
 *)
-fun interpret (prog:Program) = List.foldl execute2 newEnv prog
+fun interpret (prog:Program) = let val finalEnv = List.foldl execute2 newEnv prog
+                                in
+                                    ()
+                                end
 
 
 
 (*
 Test Case
+expected output (STDOUT) : 15.0
 *)
 val prog = [Assignment(Var "x", Const 3.0), Assignment(Var "y", Plus(Const 3.0, Const 2.0)), Print(Mul(Var "x", Var "y"))];
 interpret prog;
