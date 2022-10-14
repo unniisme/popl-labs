@@ -67,16 +67,96 @@ fun fresh s = AtomSet.foldl diagWrapper (Atom.atom("")) s
 
 
 
+
 (*
+--------------------------------------
 Bonus
+--------------------------------------
 *)
 
 (*
-val BetaReduction expr -> expr -> expr
 BetaReduction λx.e M = e [x/M] 
-*)
-fun BetaReduction (Abs(v, e)) M = subst e v M
-|   BetaReduction exp M = exp
 
-(*hmm.... Does simply typing have to be implemented*)
+val BetaReduction : expr -> expr
+*)
+fun BetaReduction (App((Abs(v, e)), M)) = subst e v M
+|   BetaReduction exp = exp
+
+
+(*
+val NormalOrder : expr -> expr
+*)
+fun NormalOrder (Var a) = Var a
+|   NormalOrder (App(Abs(v,e),e2)) = BetaReduction(App((Abs(v, NormalOrder(e))), NormalOrder(e2)))
+|   NormalOrder (App(e1,e2)) = App(NormalOrder(e1),NormalOrder(e2))
+|   NormalOrder (Abs(v,e)) = Abs(v, NormalOrder(e))
+
+
+(*
+val eval : expr -> string
+Wrapper function to get string representation of expression
+<L> is lambda
+*)
+fun eval (Var x) = Atom.toString x
+|   eval (App(e1, e2)) = (eval e1) ^ " " ^ (eval e2)
+|   eval (Abs(v,e2)) = "<L>" ^ (Atom.toString v) ^ "." ^ (eval e2)
+
+
+
+
+(*----Test cases----*)
+val x = (Atom.atom "x")
+val y = (Atom.atom "y") 
+val z = (Atom.atom "z") 
+
+(*
+1
+exp1 = (λx.(xx))(y x)
+exp1 -beta-> exp2
+exp2 is expected to be y x y x
+*)
+val exp1 = App(Abs(x, App(Var x, Var x)), App(Var y, Var x));
+val exp2 = BetaReduction exp1
+val exp2_string = eval exp2
+
+(*
+2
+exp3 = (λx.(x y))(λz.x y)
+exp3 -beta-> exp4  (on the leftmost λ)
+exp4 is expected to be λz.x y y
+*)
+val exp3 = App(Abs(x, App(Var x, Var y)), App(Abs(z, Var x), Var y));
+val exp4 = BetaReduction exp3
+val exp4_string = eval exp4
+
+
+(*
+3
+exp3 = (λx.(x y))(λz.x y)
+exp3 -beta*-> exp5  (Normalised)
+exp5 is expected to be x y
+*)
+val exp3 = App(Abs(x, App(Var x, Var y)), App(Abs(z, Var x), Var y));
+val exp5 = NormalOrder exp3
+val exp5_string = eval exp5
+
+
+(*
+4
+exp6 = (λx.(x y))(λz.(x z))
+exp6 -beta*-> exp7  (Normalised)
+exp7 is expected to be x y
+*)
+val exp6 = App(Abs(x, App(Var x, Var y)), Abs(z, App(Var x,Var z)));
+val exp7 = NormalOrder exp6
+val exp7_string = eval exp7
+
+(*
+Seems like this particular normalization stratagy doesn't work for this case.
+*)
+
+(*
+I only managed to implement this one sorry
+*)
+
 
