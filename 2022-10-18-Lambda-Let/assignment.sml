@@ -56,7 +56,7 @@ fun eval (Var x) = Atom.toString x
 |   eval (Abs(v,e2)) = "(<L>" ^ (Atom.toString v) ^ "." ^ (eval e2) ^ ")"
 
 (*---------------*)
-
+(*Q1*)
 datatype Lexpr = LVar of Atom.atom
                 | LApp of Lexpr*Lexpr  (*Application*)
                 | LAbs of Atom.atom*Lexpr (*Abstraction*)
@@ -70,6 +70,7 @@ datatype LRexpr = LRVar of Atom.atom
 exception recursionError
 
 (*
+Q2
 val LetToLambda : Lexpr -> expr
 *)
 fun LetToLambda (Let (x,(*=*) e1,(*in*) e2)) = if AtomSet.member(free (LetToLambda e1), x) then raise recursionError else
