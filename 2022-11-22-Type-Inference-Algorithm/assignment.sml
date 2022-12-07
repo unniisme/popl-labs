@@ -1,3 +1,7 @@
+(*Exception*)
+exception UnificationFailure
+
+
 signature SIGNATURE = sig
     type symbol   (* This type captures the symbols of the signature *)
     val arity   : symbol -> int
@@ -36,20 +40,25 @@ end*)
 fun zip (x::xs) (y::ys) = ((x,y)::(zip xs ys))
 
 signature UNIFICATION = sig
+    type var
+    type symbol
     type term
     type telescope
     type equation
 
     val unify : telescope -> equation -> telescope
     val unifyList : telescope -> equation list -> telescope
-    (* val checkRecursion : telescope -> Atom.atom -> bool *)
+    val checkRecursion : telescope -> var -> bool
 end
 
 
 functor Unify (structure S : SIGNATURE
                 structure V : VAR) : UNIFICATION = struct
 
-    datatype term = VAR of V.var
+    type var = V.var
+    type symbol = S.symbol
+
+    datatype term = VAR of var
                     | APP of S.symbol * term list
 
     structure VarMap = RedBlackMapFn(V) 
@@ -58,12 +67,14 @@ functor Unify (structure S : SIGNATURE
     type telescope = term VarMap.map 
     type equation = term*term
 
+    fun checkRecursion (tel:telescope) (v:var) = VarMap.inDomain(tel, v)
 
     fun unify (tel:telescope) (eq:equation) = case eq of
-                        (VAR x,t) => VarMap.singleton(x, VAR x)
-                    | (s, VAR y) => VarMap.singleton(y, VAR y)
+                        (VAR x,t) => if (checkRecursion tel x) then raise Domain else VarMap.singleton(x, t)
+                    | (s, VAR y) => if (checkRecursion tel y) then raise Domain else VarMap.singleton(y, s)
                     | (APP (f,fargs), APP (g, gargs)) => unifyList tel (zip fargs gargs)
 
     and unifyList (tel:telescope) [] = tel
     |   unifyList (tel:telescope) ((s,t)::eqns) = unifyList (unify tel (s,t)) eqns 
+
 end
