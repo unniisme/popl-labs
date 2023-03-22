@@ -29,12 +29,8 @@ signature VAR = sig
     val user : string -> var
     val toString : var -> string
     val compare : var * var -> order
+    val same : var * var -> bool
 end
-
-(*
-structure uniVar : VAR = struct
-    (*Fresh variable generation*)
-end*)
 
 
 fun zip (x::xs) (y::ys) = ((x,y)::(zip xs ys))
@@ -48,7 +44,6 @@ signature UNIFICATION = sig
 
     val unify : telescope -> equation -> telescope
     val unifyList : telescope -> equation list -> telescope
-    val checkRecursion : telescope -> var -> bool
 end
 
 
@@ -67,14 +62,54 @@ functor Unify (structure S : SIGNATURE
     type telescope = term VarMap.map 
     type equation = term*term
 
-    fun checkRecursion (tel:telescope) (v:var) = VarMap.inDomain(tel, v)
+    fun checkRecursion (VAR x, VAR y) = if (V.same(x, y)) then true else false 
+    |   checkRecursion (VAR x, APP(_, ([]))) = false  
+    |   checkRecursion (VAR x, APP(s, (t::ts))) = if (checkRecursion (VAR x, t) orelse checkRecursion (VAR x, APP(s, ts))) then true else false
+    |   checkRecursion (eq:equation) = false   (*Don't use*)
 
-    fun unify (tel:telescope) (eq:equation) = case eq of
-                        (VAR x,t) => if (checkRecursion tel x) then raise Domain else VarMap.singleton(x, t)
-                    | (s, VAR y) => if (checkRecursion tel y) then raise Domain else VarMap.singleton(y, s)
-                    | (APP (f,fargs), APP (g, gargs)) => unifyList tel (zip fargs gargs)
 
+    fun unify (tel:telescope) (VAR x, t) = if (checkRecursion (VAR x, t)) then raise UnificationFailure else VarMap.singleton(x,t)
+    |   unify (tel:telescope) (s, VAR y) = unify tel (VAR y, s)
+    |   unify (tel:telescope) (APP (f,fargs), APP (g, gargs)) = unifyList tel (zip fargs gargs)
+    
     and unifyList (tel:telescope) [] = tel
     |   unifyList (tel:telescope) ((s,t)::eqns) = unifyList (unify tel (s,t)) eqns 
 
 end
+
+
+
+structure typeVar : VAR = struct
+    type var = string
+    type ord_key = string
+
+    val used = []
+
+    fun user s = s
+    fun toString s = s
+    fun compare (a,b) = String.compare(a,b)
+    fun same (a,b) = (String.compare(a,b) = EQUAL)
+
+
+    fun diagList [] [] = [#"x"]
+    |   diagList [] (x::xs) = if x=(#"x") then [#"y"] else [#"x"]
+    |   diagList s [] = s
+    |   diagList (x::xs) (y::ys) = if x=y then (x::(diagList xs ys)) else (x::xs)
+                            
+    fun diag (s1,s2) = String.implode(diagList (String.explode(s1)) (String.explode(s2)))
+
+
+
+    (* fun fresh() = let
+                    val new = List.foldl diag "" used
+                    val used = (new::used)
+                in
+                    new
+                end  *)
+
+    fun fresh () = List.foldl diag "" ["x", "xx", "y"]
+end
+
+val f1 = typeVar.fresh()
+val f2 = typeVar.fresh()
+val f3 = typeVar.fresh()
